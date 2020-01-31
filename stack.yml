@@ -39,7 +39,7 @@ services:
       SUBDOMAINS: www
       VALIDATION: http
       EMAIL: $EMAIL
-      STAGING: "true"
+      STAGING: "false"
     volumes:
       - /home/www-data:/config
     ports:

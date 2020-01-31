@@ -7,7 +7,7 @@ This readme describes how to setup a server that runs wordpress with backups on 
 ```sh
 # at least you need to have ports 443 and 80 open, 80 is for the letsencrypt authentication challenge
 # for a google server:
-#   make a new firewall rule at global settings → "VPC network" → "Firewall rules" to allow all (this is development, not production!)
+#   make a new firewall rule at global settings → "VPC network" → "Firewall rules" to allow all (eases development on this server)
 docker || apt update && apt install docker.io
 sudo systemctl disable --now apache2
 git clone https://github.com/adabru/lug-server
@@ -28,10 +28,10 @@ sudo mkdir /home/www-backup
 automatically:
 
 ```sh
+docker swarm init
 export DOMAIN=YOUR_DOMAIN
 export EMAIL=YOUR_DOMAIN_CERTIFICATE_EMAIL
-docker stack exec lug-server/stack.yaml
-# docker stack deploy -c stack.yml
+docker stack deploy -c lug-server/stack.yml lug
 ```
 
 manually:
