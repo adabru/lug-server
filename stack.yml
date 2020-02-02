@@ -8,6 +8,10 @@ services:
       MYSQL_DATABASE: wordpress
       MYSQL_USER: wordpress
       MYSQL_PASSWORD: wordpress
+    volumes:
+      - type: bind
+        source: /home/www-mysql
+        target: /var/lib/mysql
   wordpress:
     image: wordpress:latest
     depends_on:
@@ -41,7 +45,9 @@ services:
       EMAIL: $EMAIL
       STAGING: "false"
     volumes:
-      - /home/www-data:/config
+      - type: bind
+        source: /home/www-data
+        target: /config
     ports:
       - 443:443
       - 80:80
@@ -52,8 +58,12 @@ services:
       - wordpress-mysql
     restart: unless-stopped
     volumes:
-      - /home/www-backup:/backups
-      - /home/www-data:/var/www/html
+      - type: bind
+        source: /home/www-backup
+        target: /backups
+      - type: bind
+        source: /home/www-data
+        target: /var/www/html
     environment:
       MYSQL_ENV_MYSQL_HOST: wordpress-mysql
       MYSQL_ENV_MYSQL_DATABASE: wordpress

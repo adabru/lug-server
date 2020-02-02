@@ -21,6 +21,9 @@ sudo chown 33:33 /home/www-data
 sudo usermod -a -G 33 $(whoami)
 # logout + login to have group
 
+# create folder for database
+sudo mkdir /home/www-mysql
+
 # create folder for backups
 sudo mkdir /home/www-backup
 ```
@@ -85,6 +88,7 @@ docker restart letsencrypt
 # start database
 MYSQL_ROOT_PASSWORD=abc123
 docker run -d --name wordpress-mysql --network lug \
+  -v /home/www-mysql:/var/lib/mysql
   -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
   -e MYSQL_DATABASE=wordpress \
   -e MYSQL_USER=wordpress \
@@ -145,7 +149,6 @@ docker run -d -p 8080:80 --name wordpress -v "$PWD":/var/www/html wordpress
 # open in browser: localhost:8080/installer.php
 # enable "Manual Archive Extraction"
 ```
-
 
 using section "Migrate your blog to Docker" from https://hub.docker.com/r/aveltens/wordpress-backup:
   - unzip 20191224_werkelenzde_d58df85306f74ce44926_20191224204610_archive.zip
