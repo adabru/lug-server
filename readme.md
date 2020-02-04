@@ -16,77 +16,44 @@ less /etc/passwd
 # if not existing, add user www-data 33:33
 
 # create www folder for bind mounts; this folder will contain the wordpress installation
-sudo mkdir /home/www-data
+sudo mkdir -m775 /home/www-data
 sudo chown 33:33 /home/www-data
 sudo usermod -a -G 33 $(whoami)
 # logout + login to have group
 
 # create folder for database
-sudo mkdir /home/www-mysql
+sudo mkdir -m775 /home/www-mysql
 
 # create folder for backups
-sudo mkdir /home/www-backup
-```
+sudo mkdir -m775 /home/www-backup
 
-automatically:
+# create folder for letsencrypt certificates
+sudo mkdir -m775 /home/www-letsencrypt
+sudo chown -R 33:33 /home/www-letsencrypt
+# nginx proxy config, see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#site-config-and-reverse-proxy
+mkdir -p /home/www-letsencrypt/nginx/site-confs
+cp lug-server/letsencrypt_nginx.conf /home/www-letsencrypt/nginx/site-confs/default
 
-```sh
+# start docker services
 docker swarm init
 export DOMAIN=YOUR_DOMAIN
 export EMAIL=YOUR_DOMAIN_CERTIFICATE_EMAIL
 docker stack deploy -c lug-server/stack.yml lug
+
+# make wordpress aware of https → http proxying ; only needed for fresh wordpress installation
+sudo sh -c "cat lug-server/snippet.php >> /home/www-data/wp-settings.php"
 ```
 
-manually:
+Instead of using `docker stack deploy` you can also start all containers manually:
 
 ```sh
 # pull all images
 docker pull linuxserver/letsencrypt wordpress mysql:5.7 aveltens/wordpress-backup
 
-# For the tls proxy to work a custom docker network is needen, see https://github.com/linuxserver/reverse-proxy-confs#ensure-you-have-a-custom-docker-network
+# create a custom network so that docker's dns resolution takes into effect
 docker network create lug
 
-# start nginx reverse proxy with letsencrypt tls certificate
-DOMAIN=mitfr.us.to
-EMAIL=
-docker create \
-  --name=letsencrypt \
-  --network lug \
-  --cap-add=NET_ADMIN \
-  -e PUID=$(id -u www-data) \
-  -e PGID=$(id -u www-data) \
-  -e TZ=Europe/Berlin \
-  -e URL=$DOMAIN \
-  -e SUBDOMAINS=www, \
-  -e VALIDATION=http \
-  -e EMAIL=$EMAIL \
-  -e STAGING=true \
-  -p 443:443 \
-  -p 80:80 \
-  -v /home/www-data:/config \
-  --restart unless-stopped \
-  linuxserver/letsencrypt
-docker start letsencrypt
-
-# start wordpress
-docker run -d --network lug --name wordpress \
-  -v /home/www-data/www:/var/www/html \
-  -e WORDPRESS_DB_HOST=wordpress-mysql:3306 \
-  -e WORDPRESS_DB_USER=wordpress \
-  -e WORDPRESS_DB_PASSWORD=wordpress \
-  -e WORDPRESS_DB_NAME=wordpress \
-  wordpress
-# open https://host/index.php to see files were successfully copied
-# at the moment the letsencrypt container runs the webpage,but it must be rerouted to the wordpress container's php installation
-# https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#site-config-and-reverse-proxy
-cp lug-server/letsencrypt_nginx.conf /home/www-data/nginx/site-confs/default
-# make wordpress aware of https → http proxying ; only needed for fresh wordpress installation
-sudo sh -c "cat lug-server/snippet.php >> /home/www-data/www/wp-settings.php"
-sudo sh -c "cat snippet.php >> /home/www-data/www/wp-settings.php"
-docker restart letsencrypt
-
-# start database
-MYSQL_ROOT_PASSWORD=abc123
+# now convert the directives from stack.yml to cli arguments and add the container to the lug networt, e.g.
 docker run -d --name wordpress-mysql --network lug \
   -v /home/www-mysql:/var/lib/mysql
   -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
@@ -95,12 +62,7 @@ docker run -d --name wordpress-mysql --network lug \
   -e MYSQL_PASSWORD=wordpress \
   mysql:5.7
 
-# start backup process
-docker run -d --name wordpress-backup --network lug \
-  --volumes-from=wordpress \
-  --link=wordpress-mysql:mysql \
-  -v /home/www-backup:/backups \
-  aveltens/wordpress-backup
+...
 ```
 
 ## domain change
@@ -171,7 +133,7 @@ ssh john_doe_gmail_com@35.1.2.3
 
 ## manual backup and restore
 
-A backup is automatically scheduled every day. For a manual backup run
+A backup is automatically scheduled every day. They are stored in /home/www-backup . For a manual backup run
 
 ```sh
 # if you used the stack.yml you have to use

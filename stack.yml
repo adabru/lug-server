@@ -46,7 +46,7 @@ services:
       STAGING: "false"
     volumes:
       - type: bind
-        source: /home/www-data
+        source: /home/www-letsencrypt
         target: /config
     ports:
       - 443:443
