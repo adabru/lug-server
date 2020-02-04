@@ -174,12 +174,16 @@ ssh john_doe_gmail_com@35.1.2.3
 A backup is automatically scheduled every day. For a manual backup run
 
 ```sh
+# if you used the stack.yml you have to use
+# docker exec [STACKNAME]_backup.[tabcomplete] backup
 docker exec wordpress-backup backup
 ```
 
 To restore a backup run
 
 ```sh
+# if you used the stack.yml you have to use
+# docker exec [STACKNAME]_backup.[tabcomplete] restore yyyyMMdd
 docker exec wordpress-backup restore yyyyMMdd
 ```
 
