@@ -30,9 +30,6 @@ sudo mkdir -m775 /home/www-backup
 # create folder for letsencrypt certificates
 sudo mkdir -m775 /home/www-letsencrypt
 sudo chown -R 33:33 /home/www-letsencrypt
-# nginx proxy config, see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#site-config-and-reverse-proxy
-mkdir -p /home/www-letsencrypt/nginx/site-confs
-cp lug-server/letsencrypt_nginx.conf /home/www-letsencrypt/nginx/site-confs/default
 
 # start docker services
 docker swarm init
@@ -40,8 +37,17 @@ export DOMAIN=YOUR_DOMAIN
 export EMAIL=YOUR_DOMAIN_CERTIFICATE_EMAIL
 docker stack deploy -c lug-server/stack.yml lug
 
+# nginx proxy config, see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#site-config-and-reverse-proxy
+cp lug-server/letsencrypt_nginx.conf /home/www-letsencrypt/nginx/site-confs/default
+docker service update --force lug_letsencrypt
+
 # make wordpress aware of https → http proxying ; only needed for fresh wordpress installation
-sudo sh -c "cat lug-server/snippet.php >> /home/www-data/wp-settings.php"
+vim /home/www-data/wp-config.php
+# add the lines
+#   if($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'){
+#       $_SERVER['HTTPS'] = 'on';
+#       $_SERVER['SERVER_PORT'] = 443;
+#   }
 ```
 
 Instead of using `docker stack deploy` you can also start all containers manually:
