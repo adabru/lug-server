@@ -63,7 +63,9 @@ sudo chown -R 33:33 /home/www-letsencrypt
 export DOMAIN=[your domain]
 export EMAIL=[your domain certificate email]
 cd lug-server
-sudo docker-compose up
+sudo docker-compose up -d
+sudo docker-compose logs --follow
+# press Ctrl+C when you have seen enough of logs
 
 # wait until all docker images are pulled and started ; check with
 sudo docker ps
@@ -125,7 +127,7 @@ Google servers blocks port 25 without a possibility to open it. All other provid
 Create a backup on your current server or skip it if you want to use an existing backup:
 
 ```sh
-docker exec wordpress-backup backup
+docker exec lug-server_wordpress-backup_1 backup
 ```
 
 Copy the backup from your old to your new server:
@@ -142,7 +144,7 @@ Then restore the backup on the new server
 # move the files to the container volume
 sudo mv ~/backup_* /home/www-backup/
 
-docker exec wordpress-backup restore yyyyMMdd
+docker exec lug-server_wordpress-backup_1 restore yyyyMMdd
 ```
 
 ## migrate from restricted hosting with wordpress plugin "Duplicator"
@@ -200,12 +202,12 @@ ssh john_doe_gmail_com@35.1.2.3
 A backup is automatically scheduled every day. They are stored in /home/www-backup . For a manual backup run
 
 ```sh
-docker exec wordpress-backup backup
+docker exec lug-server_wordpress-backup_1 backup
 ```
 
 To restore a backup run
 
 ```sh
-docker exec wordpress-backup restore yyyyMMdd
+docker exec lug-server_wordpress-backup_1 restore yyyyMMdd
 ```
 
