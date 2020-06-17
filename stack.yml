@@ -11,8 +11,6 @@ services:
       - type: bind
         source: /home/www-mysql
         target: /var/lib/mysql
-    expose:
-      - "3306"
   wordpress:
     image: wordpress:latest
     depends_on:
@@ -24,10 +22,8 @@ services:
     ports:
       # port is exposed for local debugging, circumventing the letsencrypt nginx proxy
       - "8080:80"
-    expose:
-      - "80"
     environment:
-      WORDPRESS_DB_HOST: wordpress-mysql:3306
+      WORDPRESS_DB_HOST: tasks.wordpress-mysql:3306
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DB_NAME: wordpress
@@ -65,7 +61,7 @@ services:
         source: /home/www-data
         target: /var/www/html
     environment:
-      MYSQL_ENV_MYSQL_HOST: wordpress-mysql
+      MYSQL_ENV_MYSQL_HOST: tasks.wordpress-mysql
       MYSQL_ENV_MYSQL_DATABASE: wordpress
       MYSQL_ENV_MYSQL_USER: wordpress
       MYSQL_ENV_MYSQL_PASSWORD: wordpress

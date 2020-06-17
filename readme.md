@@ -59,7 +59,7 @@ sudo mkdir -m775 /home/www-backup
 sudo mkdir -m775 /home/www-letsencrypt
 sudo chown -R 33:33 /home/www-letsencrypt
 
-# start docker services
+# start docker services, the DOMAIN and EMAIL variables are used in the stack.yml
 sudo docker swarm init
 export DOMAIN=[your domain]
 export EMAIL=[your domain certificate email]
