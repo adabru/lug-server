@@ -21,7 +21,7 @@ services:
         target: /var/www/html
     ports:
       # port is exposed for local debugging, circumventing the letsencrypt nginx proxy
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     environment:
       WORDPRESS_DB_HOST: wordpress-mysql:3306
       WORDPRESS_DB_USER: wordpress
@@ -46,8 +46,8 @@ services:
         source: /home/www-letsencrypt
         target: /config
     ports:
-      - "0.0.0.0:443:443"
-      - "0.0.0.0:80:80"
+      - "443:443"
+      - "80:80"
   # wordpress-backup see https://github.com/angelo-v/wordpress-backup-quickstart/blob/master/docker-compose.yml
   backup:
     image: aveltens/wordpress-backup
