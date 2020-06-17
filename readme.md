@@ -6,11 +6,12 @@ This readme describes how to setup a server that runs wordpress with backups on 
 
 ```sh
 # create linux user
-USER=hans
+USER=[your user]
+DOMAIN=[your domain]
 useradd -s /bin/bash -m $USER
 passwd $USER
 usermod -a -G sudo $USER
-ssh $USER@werkelenz.de # password
+ssh $USER@$DOMAIN # password
 ```
 
 To enable password authentication you may need to change the sshd config:
@@ -25,8 +26,6 @@ sudo kill -SIGHUP $(pgrep -f "sshd -D")
 ## setup
 
 ```sh
-sudo mkdir /home/backup /home/logs /home/clone
-
 # if docker is not installed
 sudo apt update
 sudo apt install docker.io
@@ -48,6 +47,7 @@ sudo mkdir -m775 /home/www-data
 sudo chown 33:33 /home/www-data
 sudo usermod -a -G 33 $(whoami)
 # logout + login to have group
+groups
 
 # create folder for database
 sudo mkdir -m775 /home/www-mysql
@@ -60,14 +60,18 @@ sudo mkdir -m775 /home/www-letsencrypt
 sudo chown -R 33:33 /home/www-letsencrypt
 
 # start docker services
-docker swarm init
-export DOMAIN=YOUR_DOMAIN
-export EMAIL=YOUR_DOMAIN_CERTIFICATE_EMAIL
-docker stack deploy -c lug-server/stack.yml lug
+sudo docker swarm init
+export DOMAIN=[your domain]
+export EMAIL=[your domain certificate email]
+sudo docker stack deploy -c lug-server/stack.yml lug
+# for local development, better use `docker-compose up` as it doesn't mangle the names
+
+# wait until all docker images are pulled and started ; check with
+sudo docker ps
 
 # nginx proxy config, see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#site-config-and-reverse-proxy
 cp lug-server/letsencrypt_nginx.conf /home/www-letsencrypt/nginx/site-confs/default
-docker service update --force lug_letsencrypt
+sudo docker service update --force lug_letsencrypt
 
 # make wordpress aware of https → http proxying ; only needed for fresh wordpress installation
 vim /home/www-data/wp-config.php
@@ -76,6 +80,16 @@ vim /home/www-data/wp-config.php
 #       $_SERVER['HTTPS'] = 'on';
 #       $_SERVER['SERVER_PORT'] = 443;
 #   }
+
+# list all ip addresses to check your containers
+sudo docker inspect --format='{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(sudo docker ps -q)
+
+# check your database
+sudo apt install mysql-client
+mysql -h [your db ip] -u wordpress wordpress
+
+# check that wordpress is running fine
+curl [your wordpress ip]
 ```
 
 Instead of using `docker stack deploy` you can also start all containers manually:
@@ -107,13 +121,34 @@ For changing the domain, point both the old and the new domain to your wordpress
 
 Google servers blocks port 25 without a possibility to open it. All other providers I've seen allow it with a authentication process. Personally I'd recommend not using a google server because of that. So if you're on a google server you still can simply put up an email address like you would for your personal email address. Than you can configure it via the "WP Mail SMTP" wordpress-plugin like in your normal email client. After that everything should be working.
 
-## migrate
+## migrate server
 
-See <https://hub.docker.com/r/aveltens/wordpress-backup> for how to:
+Create a backup on your current server or skip it if you want to use an existing backup:
 
-- Manually back up your database and files
-- Create WordPress and MySQL containers
-- Restore your backups to those containers with the help of wordpress-backup
+```sh
+# if you used the stack.yml you have to use
+# docker exec [STACKNAME]_backup.[tabcomplete] backup
+docker exec wordpress-backup backup
+```
+
+Copy the backup from your old to your new server:
+
+```sh
+USER=[your user name on new server]
+HOST=[the domain or ip address of your new server]
+scp /home/www-backup/backup_yyyyMMdd* $USER@$HOST:/home/$USER/
+```
+
+Then restore the backup on the new server
+
+```sh
+# move the files to the container volume
+sudo mv ~/backup_* /home/www-backup/
+
+# if you used the stack.yml you have to use
+# docker exec [STACKNAME]_backup.[tabcomplete] restore yyyyMMdd
+docker exec wordpress-backup restore yyyyMMdd
+```
 
 ## migrate from restricted hosting with wordpress plugin "Duplicator"
 

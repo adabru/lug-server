@@ -2,7 +2,6 @@ version: '3.3'
 services:
   wordpress-mysql:
     image: mysql:5.7
-    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: abc123
       MYSQL_DATABASE: wordpress
@@ -12,18 +11,21 @@ services:
       - type: bind
         source: /home/www-mysql
         target: /var/lib/mysql
+    expose:
+      - "3306"
   wordpress:
     image: wordpress:latest
     depends_on:
       - wordpress-mysql
-    restart: unless-stopped
     volumes:
       - type: bind
         source: /home/www-data
         target: /var/www/html
     ports:
       # port is exposed for local debugging, circumventing the letsencrypt nginx proxy
-      - 8080:80
+      - "8080:80"
+    expose:
+      - "80"
     environment:
       WORDPRESS_DB_HOST: wordpress-mysql:3306
       WORDPRESS_DB_USER: wordpress
@@ -32,7 +34,6 @@ services:
   # letsencrypt see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#docker-compose
   letsencrypt:
     image: linuxserver/letsencrypt
-    restart: unless-stopped
     cap_add:
       - NET_ADMIN
     environment:
@@ -49,14 +50,13 @@ services:
         source: /home/www-letsencrypt
         target: /config
     ports:
-      - 443:443
-      - 80:80
+      - "443:443"
+      - "80:80"
   # wordpress-backup see https://github.com/angelo-v/wordpress-backup-quickstart/blob/master/docker-compose.yml
   backup:
     image: aveltens/wordpress-backup
     depends_on:
       - wordpress-mysql
-    restart: unless-stopped
     volumes:
       - type: bind
         source: /home/www-backup
