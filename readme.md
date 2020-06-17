@@ -1,15 +1,43 @@
 # Server for Linux User Group
 
-This readme describes how to setup a server that runs wordpress with backups on a root-access server. It is designed for minimal maintainability costs.
+This readme describes how to setup a server that runs wordpress with backups on a root-access server. It is designed for minimal maintainability.
+
+## add an admin
+
+```sh
+# create linux user
+USER=hans
+useradd -s /bin/bash -m $USER
+passwd $USER
+usermod -a -G sudo $USER
+ssh $USER@werkelenz.de # password
+```
+
+To enable password authentication you may need to change the sshd config:
+
+```sh
+# enable ssh password auth in /etc/ssh/sshd_config by setting "PasswordAuthentication" to "yes"
+vim /etc/ssh/ssdh_config
+# reload configuration, see https://askubuntu.com/a/1027629/452398 :
+sudo kill -SIGHUP $(pgrep -f "sshd -D")
+```
 
 ## setup
 
 ```sh
-# at least you need to have ports 443 and 80 open, 80 is for the letsencrypt authentication challenge
-# for a google server:
-#   make a new firewall rule at global settings → "VPC network" → "Firewall rules" to allow all (eases development on this server)
-docker || apt update && apt install docker.io
+sudo mkdir /home/backup /home/logs /home/clone
+
+# if docker is not installed
+sudo apt update
+sudo apt install docker.io
+
+# if apache is configured by default, disable it
 sudo systemctl disable --now apache2
+
+# at least you need to have ports 443 and 80 open, 80 is for the letsencrypt authentication challenge
+# if you're on a google server: make a new firewall rule at global settings → "VPC network" → "Firewall rules" to allow all (eases development on this server)
+
+# clone the configuration
 git clone https://github.com/adabru/lug-server
 
 less /etc/passwd
