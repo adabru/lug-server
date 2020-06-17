@@ -28,7 +28,7 @@ sudo kill -SIGHUP $(pgrep -f "sshd -D")
 ```sh
 # if docker is not installed
 sudo apt update
-sudo apt install docker.io
+sudo apt install docker.io docker-compose
 
 # if apache is configured by default, disable it
 sudo systemctl disable --now apache2
@@ -59,12 +59,11 @@ sudo mkdir -m775 /home/www-backup
 sudo mkdir -m775 /home/www-letsencrypt
 sudo chown -R 33:33 /home/www-letsencrypt
 
-# start docker services, the DOMAIN and EMAIL variables are used in the stack.yml
-sudo docker swarm init
+# start docker services, the DOMAIN and EMAIL variables are used in the docker-compose.yml
 export DOMAIN=[your domain]
 export EMAIL=[your domain certificate email]
-sudo docker stack deploy -c lug-server/stack.yml lug
-# for local development, better use `docker-compose up` as it doesn't mangle the names
+cd lug-server
+sudo docker-compose up
 
 # wait until all docker images are pulled and started ; check with
 sudo docker ps
@@ -92,7 +91,7 @@ mysql -h [your db ip] -u wordpress wordpress
 curl [your wordpress ip]
 ```
 
-Instead of using `docker stack deploy` you can also start all containers manually:
+Instead of using `docker-compose up` you can also start all containers manually:
 
 ```sh
 # pull all images
@@ -101,7 +100,7 @@ docker pull linuxserver/letsencrypt wordpress mysql:5.7 aveltens/wordpress-backu
 # create a custom network so that docker's dns resolution takes into effect
 docker network create lug
 
-# now convert the directives from stack.yml to cli arguments and add the container to the lug networt, e.g.
+# now convert the directives from docker-compose.yml to cli arguments and add the container to the lug networt, e.g.
 docker run -d --name wordpress-mysql --network lug \
   -v /home/www-mysql:/var/lib/mysql
   -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
@@ -126,8 +125,6 @@ Google servers blocks port 25 without a possibility to open it. All other provid
 Create a backup on your current server or skip it if you want to use an existing backup:
 
 ```sh
-# if you used the stack.yml you have to use
-# docker exec [STACKNAME]_backup.[tabcomplete] backup
 docker exec wordpress-backup backup
 ```
 
@@ -145,8 +142,6 @@ Then restore the backup on the new server
 # move the files to the container volume
 sudo mv ~/backup_* /home/www-backup/
 
-# if you used the stack.yml you have to use
-# docker exec [STACKNAME]_backup.[tabcomplete] restore yyyyMMdd
 docker exec wordpress-backup restore yyyyMMdd
 ```
 
@@ -205,16 +200,12 @@ ssh john_doe_gmail_com@35.1.2.3
 A backup is automatically scheduled every day. They are stored in /home/www-backup . For a manual backup run
 
 ```sh
-# if you used the stack.yml you have to use
-# docker exec [STACKNAME]_backup.[tabcomplete] backup
 docker exec wordpress-backup backup
 ```
 
 To restore a backup run
 
 ```sh
-# if you used the stack.yml you have to use
-# docker exec [STACKNAME]_backup.[tabcomplete] restore yyyyMMdd
 docker exec wordpress-backup restore yyyyMMdd
 ```
 
