@@ -30,6 +30,8 @@ services:
   # letsencrypt see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#docker-compose
   letsencrypt:
     image: linuxserver/letsencrypt
+    depends_on:
+      - wordpress
     cap_add:
       - NET_ADMIN
     environment:
