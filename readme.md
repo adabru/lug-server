@@ -71,7 +71,7 @@ sudo docker-compose logs --follow
 sudo docker ps
 
 # nginx proxy config, see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#site-config-and-reverse-proxy
-cp lug-server/letsencrypt_nginx.conf /home/www-letsencrypt/nginx/site-confs/default
+cp letsencrypt_nginx.conf /home/www-letsencrypt/nginx/site-confs/default
 sudo docker service update --force lug_letsencrypt
 
 # make wordpress aware of https → http proxying ; only needed for fresh wordpress installation
@@ -112,6 +112,17 @@ docker run -d --name wordpress-mysql --network lug \
   mysql:5.7
 
 ...
+
+# for local development:
+# temporarily resolve werkelenz.de and www.werkelenz.de to localhost
+sudo vim /etc/hosts
+# use a locally signed cert for https
+sudo mkdir -p /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN
+sudo openssl req -x509 -newkey rsa:4096 \
+  -keyout /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN/privkey.pem \
+  -out /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+  -nodes -days 30 -subj "/C=DE/CN=$DOMAIN;www.$DOMAIN/O=LUG"
+# then start or restart the docker-compose as usual
 ```
 
 ## domain change
