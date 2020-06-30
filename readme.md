@@ -54,6 +54,8 @@ sudo mkdir -m775 /home/www-mysql
 
 # create folder for backups
 sudo mkdir -m775 /home/www-backup
+# schedule regular backup removal
+sudo ln -s backup_schedule.sh /etc/cron.daily
 
 # create folder for letsencrypt certificates
 sudo mkdir -m775 /home/www-letsencrypt
