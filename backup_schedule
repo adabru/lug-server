@@ -1,0 +1,5 @@
+#!/bin/bash
+chown -R 33:33 /home/www-backup
+sudo -i -u 33 bash << EOF
+python3 <PWD>/backup_schedule.py /home/www-backup 1.2.4.8.24
+EOF
