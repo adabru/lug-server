@@ -1,6 +1,6 @@
 # Server for Linux User Group
 
-This readme describes how to setup a server that runs wordpress with backups on a root-access server. It is designed for minimal maintainability.
+This readme describes how to setup a server that runs wordpress with backups on a root-access server. It is designed for minimal maintaining efforts.
 
 ## add an admin
 
@@ -55,7 +55,9 @@ sudo mkdir -m775 /home/www-mysql
 # create folder for backups
 sudo mkdir -m775 /home/www-backup
 # schedule regular backup removal
-sudo sh -c 'sed -e "s|<PWD>|$PWD|" backup_schedule > /etc/cron.daily/backup_schedule'
+sed -e "s|<PWD>|$PWD|" backup_schedule > /tmp/backup_schedule
+sudo cp /tmp/backup_schedule /etc/cron.daily/backup_schedule
+sudo chmod +x /etc/cron.daily/backup_schedule
 
 # create folder for letsencrypt certificates
 sudo mkdir -m775 /home/www-letsencrypt

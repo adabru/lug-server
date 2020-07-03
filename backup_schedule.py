@@ -24,8 +24,13 @@ for file in os.listdir(sys.argv[1]):
 
 periods = [int(x) for x in sys.argv[2].split('.')]
 
-# find out which backups to keep
-cursor = datetime.date.today()
+# keep today's backup
+today = datetime.date.today()
+if today in backups:
+  backups[today]['delete'] = False
+
+# find out which other backups to keep
+cursor = today
 for p in periods:
   cursor -= datetime.timedelta(days=p)
   # find the best suited backup, i.e. the oldest backup that is not older than the specified period
