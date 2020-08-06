@@ -23,12 +23,25 @@ vim /etc/ssh/ssdh_config
 sudo kill -SIGHUP $(pgrep -f "sshd -D")
 ```
 
+If the sudo group does not exist yet, use following as root:
+
+```sh
+# ensure group sudo exists
+groupadd sudo
+# enable sudo permission for this group by uncommenting a line
+EDITOR=vim visudo
+```
+
 ## setup
 
 ```sh
 # if docker is not installed
 sudo apt update
 sudo apt install docker.io docker-compose
+# with arch:
+# sudo pacman -Syyu
+# sudo pacman -S  docker docker-compose
+# sudo systemctl --now enable docker
 
 # if apache is configured by default, disable it
 sudo systemctl disable --now apache2
@@ -40,7 +53,8 @@ sudo systemctl disable --now apache2
 git clone https://github.com/adabru/lug-server
 
 less /etc/passwd
-# if not existing, add user www-data 33:33
+# if no user with id 33 exists (e.g. www-data or http), create it:
+useradd -u 33 -g 33 www-data
 
 # create www folder for bind mounts; this folder will contain the wordpress installation
 sudo mkdir -m775 /home/www-data
@@ -55,6 +69,9 @@ sudo mkdir -m775 /home/www-mysql
 # create folder for backups
 sudo mkdir -m775 /home/www-backup
 # schedule regular backup removal
+# on arch you need to enable cron:
+# pacman -S cronie && sudo systemctl --now enable docker
+cd lug-server
 sed -e "s|<PWD>|$PWD|" backup_schedule > /tmp/backup_schedule
 sudo cp /tmp/backup_schedule /etc/cron.daily/backup_schedule
 sudo chmod +x /etc/cron.daily/backup_schedule
@@ -63,10 +80,18 @@ sudo chmod +x /etc/cron.daily/backup_schedule
 sudo mkdir -m775 /home/www-letsencrypt
 sudo chown -R 33:33 /home/www-letsencrypt
 
-# start docker services, the DOMAIN and EMAIL variables are used in the docker-compose.yml
+# the DOMAIN and EMAIL variables are used in the docker-compose.yml
 export DOMAIN=[your domain]
 export EMAIL=[your domain certificate email]
-cd lug-server
+
+# if your DOMAIN doesn't currently point to your ip, create a temporary self-signed cert:
+sudo mkdir -p /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN
+sudo openssl req -x509 -newkey rsa:4096 \
+  -keyout /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN/privkey.pem \
+  -out /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+  -nodes -days 30 -subj "/C=DE/CN=$DOMAIN;www.$DOMAIN/O=LUG"
+
+# start docker services
 sudo -E docker-compose up -d
 sudo docker-compose logs --follow
 # press Ctrl+C when you have seen enough of logs
@@ -76,7 +101,7 @@ sudo docker ps
 
 # nginx proxy config, see https://github.com/linuxserver/docker-letsencrypt/blob/master/README.md#site-config-and-reverse-proxy
 cp letsencrypt_nginx.conf /home/www-letsencrypt/nginx/site-confs/default
-sudo docker service update --force lug_letsencrypt
+sudo -E docker-compose restart letsencrypt
 
 # make wordpress aware of https → http proxying ; only needed for fresh wordpress installation
 vim /home/www-data/wp-config.php
@@ -116,17 +141,6 @@ docker run -d --name wordpress-mysql --network lug \
   mysql:5.7
 
 ...
-
-# for local development:
-# temporarily resolve werkelenz.de and www.werkelenz.de to localhost
-sudo vim /etc/hosts
-# use a locally signed cert for https
-sudo mkdir -p /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN
-sudo openssl req -x509 -newkey rsa:4096 \
-  -keyout /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN/privkey.pem \
-  -out /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN/fullchain.pem \
-  -nodes -days 30 -subj "/C=DE/CN=$DOMAIN;www.$DOMAIN/O=LUG"
-# then start or restart the docker-compose as usual
 ```
 
 ## domain change
@@ -142,7 +156,7 @@ Google servers blocks port 25 without a possibility to open it. All other provid
 Create a backup on your current server or skip it if you want to use an existing backup:
 
 ```sh
-docker exec lug-server_wordpress-backup_1 backup
+sudo docker exec lug-server_wordpress-backup_1 backup
 ```
 
 Copy the backup from your old to your new server:
@@ -157,10 +171,25 @@ Then restore the backup on the new server
 
 ```sh
 # move the files to the container volume
-sudo mv ~/backup_* /home/www-backup/
+mv ~/backup_* /home/www-backup/
 
-docker exec lug-server_wordpress-backup_1 restore yyyyMMdd
+sudo docker exec lug-server_wordpress-backup_1 restore yyyyMMdd
 ```
+
+Copy your https certificates to the new server:
+
+```sh
+# on your old server
+DOMAIN=[your domain]
+sudo scp -r /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN $USER@$HOST:/home/$USER/migrate_certs
+# on your new server
+DOMAIN=[your domain]
+sudo cp ~/migrate_certs/* /home/www-letsencrypt/etc/letsencrypt/live/$DOMAIN
+cd lug-server
+sudo docker-compose restart letsencrypt
+```
+
+To check your new server while the domain points at your old server, you can temporarily edit your hosts file to point to the new server.
 
 ## migrate from restricted hosting with wordpress plugin "Duplicator"
 
