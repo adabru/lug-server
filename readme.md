@@ -49,7 +49,10 @@ sudo systemctl disable --now apache2
 # at least you need to have ports 443 and 80 open, 80 is for the letsencrypt authentication challenge
 # if you're on a google server: make a new firewall rule at global settings → "VPC network" → "Firewall rules" to allow all (eases development on this server)
 
-# clone the configuration
+# clone the configuration to a place accessible to the http user
+sudo mkdir -m775 /home/configuration
+sudo chown 33:33 /home/configuration
+cd /home/configuration
 git clone https://github.com/adabru/lug-server
 
 less /etc/passwd
